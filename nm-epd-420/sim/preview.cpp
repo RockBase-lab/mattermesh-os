@@ -1,0 +1,846 @@
+#include "ui/build_info.h"
+#include <algorithm>
+#include <fstream>
+#include <filesystem>
+#include <iostream>
+#include "ui/renderer.h"
+#include "ui/emoji_choices.h"
+#include "mesh/radio_presets.h"
+int main(int argc, char** argv) {
+  std::filesystem::path dir = argc > 1 ? argv[1] : "screenshots/mattermesh";
+  std::filesystem::create_directories(dir);
+  GFXcanvas1 canvas(mm::W, mm::H);
+  mm::Renderer renderer(canvas);
+  mm::State state;
+  state.version = MM_BUILD_VERSION;
+  state.sd = true;
+  state.touch = true;
+  state.keyboard = true;
+  state.hapticReady = true;
+  state.gpsAvailable = true;
+  state.gpsEnabled = true;
+  state.status.gps = true;
+  state.status.battery = 57;
+  state.weatherValid = true;
+  state.weatherCode = 2;
+  state.temperature = 18;
+  state.humidity = 64;
+  state.pressure = 1017;
+  state.wind = 8;
+  state.high = 22;
+  state.low = 8;
+  state.weatherText = "Partly cloudy";
+  state.weatherPlace = "Cervinia";
+  state.weatherUpdated = "2026-10-13T10:15";
+  state.wifiConnected = true;
+  state.status.wifi = true;
+  state.status.bt = true;
+  state.bleReady = true;
+  state.radioReady = true;
+  state.nodeCount = 6;
+  state.status.mesh = true;
+  state.focus = -1;
+  state.status.clock = "10:24";
+  state.date = "Mon, Apr 28, 2025";
+  state.heapKB = 190;
+  state.build = "Oct 13 2026";
+  state.commit = "uncommitted";
+  const char* names[] = {"River",   "Mesh Net",  "Scout",     "Base Camp",
+                         "Archive", "Local Net", "Field Team"};
+  const char* previews[] = {"Meet at the ridge?", "3 new messages", "Map data sent.",
+                            "All good here.",     "12 messages",    "Weather update at 11:00.",
+                            "Copy that."};
+  for (int i = 0; i < 7; i++) {
+    mm::Conversation c;
+    c.name = names[i];
+    c.preview = previews[i];
+    c.scope = "it-vda";
+    c.direct = i == 0;
+    c.id = i;
+    c.time = i < 4 ? "10:18" : "--:--";
+    state.conversations.push_back(c);
+  }
+  auto save = [&](const std::string& name) {
+    std::ofstream f(dir / (name + ".pbm"), std::ios::binary);
+    f << "P4\n" << mm::W << " " << mm::H << "\n";
+    f.write((char*)canvas.getBuffer(), ((mm::W + 7) / 8) * mm::H);
+  };
+  mm::splashScreen(canvas, 65, "Initializing mesh services...");
+  save("splash");
+  state.receivedChannel = "Italia";
+  state.unread = 3;
+  state.status.unread = 3;
+  state.menuDate = "Mon, Apr 28";
+  state.conversations[1].unread = 3;
+  state.receivedName = "River";
+  state.receivedPreview = "Meet at the ridge?";
+  state.receivedTime = "10:17";
+  renderer.lock(state);
+  save("lock");
+  state.unlockTapCount = 1;
+  renderer.lock(state);
+  save("lock-unlocking-top");
+  state.unlockTapCount = 2;
+  renderer.lock(state);
+  save("lock-unlock-tap2");
+  state.unlockTapCount = 0;
+  renderer.home(state);
+  save("home");
+  {
+    auto w = state;
+    w.page = mm::Page::Launcher;
+    w.nodeCount = 23;
+    w.homeFact = "12 nodes heard";
+    w.weatherValid = true;
+    w.temperature = 8;
+    w.weatherCode = 2;
+    w.weatherPlace = "Cervinia";
+    w.widget.sun = true;
+    w.widget.sunrise = "07:12";
+    w.widget.sunset = "17:58";
+    w.widget.nextSunTime = "17:58";
+    w.widget.dayPermille = 400;
+    w.widget.clock = true;
+    w.widget.moonName = "Waxing";
+    w.widget.moonIllumination = 64;
+    w.widget.moonAge = 10;
+    w.widget.moonFull = "Nov 4";
+    w.widget.gpsOn = w.widget.gpsFix = w.widget.position = true;
+    w.widget.altitude = 1842;
+    w.widget.satellites = 7;
+    w.widget.latitude = 45.9213;
+    w.widget.longitude = 7.6312;
+    w.widget.live = 5;
+    w.widget.repeater = true;
+    w.widget.repeaterName = "Magliolo";
+    w.widget.repeaterSnr = 9;
+    w.widget.repeaterAgeS = 240;
+    w.widget.month = "OCT";
+    w.widget.weekday = "Tuesday";
+    w.widget.day = 27;
+    w.widget.week = 44;
+    w.widget.weatherAgeS = 10800;
+    w.widget.unread = 4;
+    w.widget.unreadChats = 2;
+    w.widget.unreadDirect = 1;
+    for (int i = 0; i < mm::HomeWidgetCount; i++) {
+      w.homeWidget = i;
+      renderer.home(w);
+      save("home-widget-" + std::to_string(i));
+    }
+    w.homeWidget = mm::WidgetSunset;
+    w.page = mm::Page::HomeWidgets;
+    renderer.draw(w);
+    save("home-widgets");
+    w.page = mm::Page::BesideClock;
+    w.homeWidgetFocus = 4;
+    renderer.draw(w);
+    save("beside-clock");
+    w.homeWidgetFocus = mm::WidgetSunset;
+    renderer.draw(w);
+    save("beside-clock-inuse");
+    w.weatherHours = 4;
+    w.apparent = 6;
+    w.wind = 12;
+    w.humidity = 64;
+    w.pressure = 1016;
+    w.high = 11;
+    w.low = 3;
+    w.weatherText = "Partly cloudy";
+    w.weatherUpdated = "2026-10-27T10:15";
+    for (int i = 0; i < 4; i++) {
+      w.weatherHourCode[i] = i ? 3 : 2;
+      w.weatherHourTemp[i] = 8 + i;
+      w.weatherHourTime[i] = std::to_string(11 + i) + ":00";
+    }
+    w.main.timeline = {{"10:18", "River", "Meet at the ridge?", true, true, 0},
+                       {"10:12", "Italia", "Marco: on the summit now", false, true, 1},
+                       {"09:58", "Mesh Net", "Scout: map data sent.", false, false, 2},
+                       {"09:40", "Meteo", "Magliolo: 22.0 C, wind 12", false, false, 3},
+                       {"09:31", "Italia", "You: on my way", false, false, 1},
+                       {"09:02", "Mesh Net", "Base Camp: radio check", false, false, 2}};
+    w.main.here = true;
+    w.main.nearby = {{"Marco AO", "820 m NE", 820, 40, true},
+                     {"Base Camp", "1.9 km S", 1900, 200, false},
+                     {"Scout", "3.4 km NW", 3400, 300, true},
+                     {"Magliolo", "5.2 km SE", 5200, 120, false}};
+    for (int i = 0; i < 24; i++)
+      w.main.packets[i] = (i * 7) % 13 + (i > 18 ? 6 : 0);
+    w.main.packetsHour = 37;
+    w.main.nodesHeard = 12;
+    w.main.bestSnr = 9;
+    w.main.snrKnown = true;
+    w.main.utm = "32T 393407 5086512";
+    w.main.spokenLat = "four five point nine two one three north";
+    w.main.spokenLon = "seven point six three one two east";
+    w.main.hdopHundredths = 90;
+    w.main.elevation = {1620, 1640, 1655, 1700, 1690, 1740, 1780, 1810, 1842};
+    w.main.climb = 232;
+    w.main.elevationFrom = "08:40";
+    w.main.note = "Water at the Bivacco Rossi. Back by 17:00, radio on channel Italia.";
+    w.homeWidget = mm::WidgetClassic;
+    for (int i = 0; i < mm::MainWidgetCount; i++) {
+      w.homeMain = i;
+      w.page = mm::Page::Home;
+      renderer.home(w);
+      save("home-main-" + std::to_string(i));
+    }
+    w.homeMain = mm::MainTimeline;
+    w.page = mm::Page::MainArea;
+    w.homeMainFocus = mm::MainRadar;
+    renderer.draw(w);
+    save("main-area");
+    w.page = mm::Page::Note;
+    w.noteInput = w.main.note;
+    renderer.draw(w);
+    save("note");
+  }
+  state.scroll = 52;
+  renderer.home(state);
+  save("home-connections");
+  state.scroll = 0;
+  state.page = mm::Page::Launcher;
+  state.focus = -1;
+  renderer.draw(state);
+  save("applications");
+  state.focus = 0;
+  state.page = mm::Page::Messages;
+  renderer.draw(state);
+  save("messages");
+  state.channelOptions = true;
+  state.channelOptionName = "Italia";
+  renderer.draw(state);
+  save("channel-options");
+  state.channelOptionMuted = true;
+  renderer.draw(state);
+  save("channel-options-muted");
+  state.deleteChannelConfirm = true;
+  renderer.draw(state);
+  save("channel-delete-confirm");
+  state.deleteChannelConfirm = false;
+  state.channelOptionMuted = false;
+  state.channelOptionName = "#trailteam";
+  state.channelKeyView = true;
+  state.channelKeyHex = "0f9e8d7c6b5a49382716a5b4c3d2e1f0";
+  state.channelKeyScope = "it-vda";
+  state.qrSize = 41;
+  state.qrModules.assign(41 * 41, 0);
+  for (int y = 0; y < 41; y++)
+    for (int x = 0; x < 41; x++) {
+      auto finder = [&](int fx, int fy) {
+        int dx = x - fx, dy = y - fy;
+        if (dx < 0 || dy < 0 || dx > 6 || dy > 6)
+          return -1;
+        return int(dx == 0 || dy == 0 || dx == 6 || dy == 6 ||
+                   (dx >= 2 && dx <= 4 && dy >= 2 && dy <= 4));
+      };
+      int f = std::max({finder(0, 0), finder(34, 0), finder(0, 34)});
+      state.qrModules[y * 41 + x] = f >= 0 ? f : ((x * 7 + y * 13 + x * y) % 5 < 2);
+    }
+  renderer.draw(state);
+  save("channel-key");
+  state.channelKeyView = false;
+  state.qrModules.clear();
+  state.qrSize = 0;
+  state.channelOptions = state.deleteChannelConfirm = state.channelOptionMuted = false;
+  state.messageMenu = true;
+  state.messageMenuFocus = 0;
+  renderer.draw(state);
+  save("messages-menu");
+  state.messageMenu = false;
+  state.page = mm::Page::ContactPicker;
+  state.pickerRows = {{"Marco AO", "heard 3 min ago / 2 hops"},
+                      {"Luca T-Deck", "heard 12 min ago / direct / chat"},
+                      {"Base Camp", "saved contact"},
+                      {"Scout", "saved contact / 4 hops"}};
+  state.pickerTotal = 7;
+  state.pickerFocus = 0;
+  renderer.draw(state);
+  save("contact-picker");
+  state.pickerSearching = true;
+  state.pickerQuery = "mar";
+  state.pickerRows.resize(1);
+  state.pickerTotal = 1;
+  renderer.draw(state);
+  save("contact-picker-search");
+  state.pickerRows.clear();
+  state.pickerSearching = false;
+  state.pickerQuery = "";
+  state.page = mm::Page::Messages;
+  state.page = mm::Page::NewChat;
+  state.newForm = 0;
+  state.newName = "Field Team";
+  state.newKey = "0f9e8d7c6b5a49382716a5b4c3d2e1f0";
+  state.field = 0;
+  renderer.draw(state);
+  save("channel-create");
+  state.newForm = 1;
+  state.newName = "#trailteam";
+  state.newKey = "5a1e7c90b3d24f68a0c1";
+  state.field = 1;
+  renderer.draw(state);
+  save("channel-join-private");
+  state.newForm = 2;
+  state.newName = "cervinia";
+  state.newKey = "";
+  state.field = 0;
+  renderer.draw(state);
+  save("channel-join-hashtag");
+  state.newName = "";
+  state.newKey = "";
+  state.newForm = 0;
+  state.field = 0;
+  state.page = mm::Page::Chat;
+  state.chatName = "Marco AO";
+  state.chatDirect = true;
+  state.firstRepeater = "DM path: flood (not learned yet)";
+  renderer.draw(state);
+  save("chat-direct-empty");
+  state.firstRepeater = "DM path: 3 hops a1>b2>c3";
+  renderer.draw(state);
+  save("chat-direct-path");
+  state.firstRepeater = "";
+  state.chatDirect = false;
+  state.page = mm::Page::Chat;
+  state.chatName = "River";
+  state.scope = "it-vda";
+  const char* bodies[] = {"You near the ridge?",
+                          "Almost there.",
+                          "Signal is good from the pass.",
+                          "Copy. Meet at the lookout in 10.",
+                          "Weather still clear?",
+                          "Yes, light wind. Skies are clear.",
+                          "Bringing the radio kit.",
+                          "Perfect. I'll be there shortly.",
+                          "See you soon."};
+  for (int i = 0; i < 9; i++)
+    state.messages.push_back({i % 2 ? "YOU" : "River", "10:18", bodies[i],
+                              i % 2 ? "Local / not transmitted" : "2 hop / it-vda", bool(i % 2)});
+  renderer.draw(state);
+  save("chat");
+  {
+    auto b = state;
+    renderer.draw(b);
+    renderer.notificationBanner(mm::NotificationBanner, mm::Top - 1, mm::Icon::Messages, "Marco AO",
+                                "Italia", "On the summit now, coming down by the ridge path");
+    save("banner-message");
+    b.page = mm::Page::Settings;
+    renderer.draw(b);
+    renderer.notificationBanner(mm::NotificationBanner, mm::Top - 1, mm::Icon::Settings,
+                                "Update available", "OTA",
+                                "MatterMesh 0.6.0.4 is ready: tap to open");
+    save("banner-update");
+    b.page = mm::Page::Home;
+    renderer.home(b);
+    renderer.notificationBanner(
+        mm::NotificationBannerHome, mm::NotificationBannerHome.y + mm::NotificationBannerHome.h + 4,
+        mm::Icon::Messages, "River", "Direct",
+        "Meet at the ridge? I left the hut ten minutes ago and the weather is turning");
+    save("banner-home");
+    b.page = mm::Page::Chat;
+    renderer.draw(b);
+    renderer.notificationBanner(mm::NotificationBanner, mm::Top - 1, mm::Icon::Info,
+                                "Message too long for this channel", "", "");
+    save("banner-notice");
+  }
+  state.status.antennaInternal = false;
+  state.firstRepeater = "First RPT: [abcd] Ridge repeater";
+  renderer.draw(state);
+  save("chat-first-rpt");
+  state.firstRepeater = "";
+  renderer.draw(state);
+  renderer.holdBanner("Input interrupted");
+  save("input-banner");
+  state.status.antennaInternal = true;
+  auto original = state.messages;
+  state.messages.clear();
+  state.messages.push_back(
+      {"Field station", "09:03", "Plateau Rosa 12⁰ windy today.", "9 hop | it | *", false});
+  state.messages.push_back({"You", "09:04", "18°C / 64℉", "", true});
+  renderer.draw(state);
+  save("chat-degree-fix");
+  state.messages = original;
+  state.input = "A long draft that must scroll horizontally and preserve the final letters 🙂👍";
+  renderer.draw(state);
+  save("chat-input-scroll");
+  state.input = "@[🇮🇹 Oreste IW1QQG] Hi";
+  renderer.draw(state);
+  save("chat-mention-clean");
+  state.emojiPicker = true;
+  for (auto code : mm::DefaultRecentEmoji)
+    state.emojiRecent.push_back(mm::emojiIndex(code));
+  state.emojiFocus = 3;
+  renderer.draw(state);
+  save("chat-emoji-picker");
+  state.emojiTab = 1;
+  state.emojiFocus = 8;
+  renderer.draw(state);
+  save("chat-emoji-smileys");
+  state.emojiTab = 3;
+  state.emojiFocus = 0;
+  renderer.draw(state);
+  save("chat-emoji-nature");
+  state.emojiTab = 0;
+  state.emojiFocus = 0;
+  state.emojiPicker = false;
+  state.input = "";
+  state.chatOffset = 3;
+  renderer.draw(state);
+  save("chat-history");
+  state.chatOffset = 0;
+  state.contextMessage = state.messages.back();
+  state.messageActions = true;
+  renderer.draw(state);
+  save("chat-actions");
+  state.contextMessage = state.messages[7];
+  state.contextMessage.mine = true;
+  state.contextMessage.repeaters = 5;
+  state.heardPeers = {"[ab] Base Camp RPT", "[cd] Ridge repeater", "[ef] Unknown repeater",
+                      "[11] Ambiguous / 2 RPT", "[22] Valley RPT"};
+  renderer.draw(state);
+  save("chat-own-resend");
+  state.heardOffset = 2;
+  renderer.draw(state);
+  save("chat-own-resend-scroll");
+  state.heardOffset = 0;
+  state.heardPeers.clear();
+  state.contextMessage = state.messages.back();
+  state.messageActions = false;
+  state.messagePath = true;
+  state.pathText = "Sender: River\n2 hop / it-vda\nPath RX (hash):\n1. ab / Base Camp\n2. cd / "
+                   "unknown\nDestination: this T-Deck";
+  renderer.draw(state);
+  save("chat-path");
+  state.messagePath = false;
+  state.messageMenu = true;
+  renderer.draw(state);
+  save("chat-options");
+  state.messageMenu = false;
+  state.scopePicker = true;
+  state.regionScopes = {"*", "it", "it-vda", "eu", "it-pie", "it-tos"};
+  state.scopeFocus = 2;
+  renderer.draw(state);
+  save("chat-region-scopes");
+  state.scopeEditing = true;
+  state.scopeInput = "it-vda";
+  renderer.draw(state);
+  save("chat-add-scope");
+  state.scopeEditing = state.scopePicker = false;
+  state.clearChatConfirm = true;
+  renderer.draw(state);
+  save("chat-clear-confirm");
+  state.clearChatConfirm = false;
+  state.positionShare = true;
+  state.gpsEnabled = false;
+  state.positionMessage = "GPS is off. Enable it to acquire your position.";
+  renderer.draw(state);
+  save("chat-position-gps-off");
+  state.gpsEnabled = true;
+  state.positionMessage = "Waiting for a fresh GPS fix...";
+  renderer.draw(state);
+  save("chat-position-waiting");
+  state.positionCoordinates = "GPS: 45.934123, 7.629456";
+  renderer.draw(state);
+  save("chat-position-ready");
+  state.positionShare = false;
+  // Contacts page samples: live companions and repeaters with distance, then search / repeater-tab
+  // / empty variants.
+  {
+    state.filter = 0;
+    state.filteredNodeCount = 7;
+    state.contactLive = 3;
+    state.nodeScroll = 0;
+    state.contactFocus = 0;
+    state.radioReady = true;
+    state.nodes.clear();
+    const char* cn[] = {"River", "Base Camp RPT", "Scout", "Archive"};
+    int ct[] = {1, 2, 1, 1};
+    bool cl[] = {true, true, true, false};
+    int ch[] = {0, 0, 2, -1};
+    const char* cd[] = {"1.2 km NE", "850 m W", "12 km S", ""};
+    for (int i = 0; i < 4; i++) {
+      mm::Node n;
+      n.name = cn[i];
+      n.key = std::string(64, 'a' + i);
+      n.type = ct[i];
+      n.live = cl[i];
+      n.age = 15 + i * 400;
+      n.rssi = -70 - i * 9;
+      n.snr = 9.5 - i * 4;
+      n.hops = ch[i];
+      n.distance = cd[i];
+      state.nodes.push_back(n);
+    }
+    state.page = mm::Page::Mesh;
+    auto search = state;
+    search.contactSearching = true;
+    search.contactQuery = "riv";
+    search.nodes = {state.nodes[0]};
+    search.filteredNodeCount = 1;
+    search.contactLive = 1;
+    renderer.draw(search);
+    save("contacts-search");
+    auto rpt = state;
+    rpt.filter = 2;
+    rpt.nodes = {state.nodes[1]};
+    rpt.filteredNodeCount = 1;
+    rpt.contactLive = 1;
+    renderer.draw(rpt);
+    save("contacts-rpt");
+    auto empty = state;
+    empty.nodes.clear();
+    empty.filteredNodeCount = empty.contactLive = 0;
+    renderer.draw(empty);
+    save("contacts-empty");
+  }
+  const mm::Page pages[] = {mm::Page::Settings, mm::Page::Controls,  mm::Page::Mesh,
+                            mm::Page::Radio,    mm::Page::GPS,       mm::Page::Maps,
+                            mm::Page::Weather,  mm::Page::Info,      mm::Page::Files,
+                            mm::Page::Wifi,     mm::Page::Bluetooth, mm::Page::Terminal,
+                            mm::Page::DateTime, mm::Page::Updates,   mm::Page::Battery};
+  const char* files[] = {"settings",  "device",   "mesh",  "radio",   "gps",
+                         "maps",      "weather",  "about", "files",   "wifi",
+                         "bluetooth", "terminal", "time",  "updates", "battery"};
+  state.files = {"[DIR] maxchat", "[DIR] ripple", "[DIR] tiles", "config.conf"};
+  state.voltage = 4156;
+  static_assert(sizeof(pages) / sizeof(pages[0]) == sizeof(files) / sizeof(files[0]),
+                "one file name per page");
+  for (size_t i = 0; i < sizeof(pages) / sizeof(pages[0]); i++) {
+    state.page = pages[i];
+    renderer.draw(state);
+    save(files[i]);
+  }
+  {
+    auto t = state;
+    t.page = mm::Page::DateTime;
+    t.dateEditing = true;
+    t.dateFocus = 3;
+    int f[5] = {20, 10, 2026, 13, 45};
+    for (int i = 0; i < 5; i++)
+      t.dateFields[i] = f[i];
+    renderer.draw(t);
+    save("time-edit");
+  }
+  {
+    auto w = state;
+    w.page = mm::Page::Weather;
+    w.weatherValid = false;
+    w.weatherPhase = mm::WeatherPhaseView::WifiOff;
+    w.weatherMessage = "Wi-Fi is off";
+    renderer.draw(w);
+    save("weather-wifi-off");
+    w.weatherPhase = mm::WeatherPhaseView::NoNetwork;
+    renderer.draw(w);
+    save("weather-no-network");
+    w.weatherPhase = mm::WeatherPhaseView::Locating;
+    w.weatherMessage = "Finding position...";
+    renderer.draw(w);
+    save("weather-locating");
+    w.weatherValid = true;
+    w.weatherPhase = mm::WeatherPhaseView::Ready;
+    w.weatherMessage = "Updated";
+    w.weatherPlace = "Cervinia";
+    w.weatherSource = "Wi-Fi";
+    w.weatherCode = 2;
+    w.weatherText = "Partly cloudy";
+    w.temperature = 18.4;
+    w.apparent = 17.2;
+    w.humidity = 64;
+    w.wind = 14;
+    w.pressure = 1016;
+    w.high = 21;
+    w.low = 13;
+    w.weatherUpdated = "2026-10-18T14:00";
+    w.weatherNext = 840;
+    w.weatherHours = 4;
+    const char* times[] = {"17:00", "20:00", "23:00", "02:00"};
+    int codes[] = {2, 3, 61, 0};
+    float temps[] = {19, 16, 14, 12};
+    for (int i = 0; i < 4; i++) {
+      w.weatherHourTime[i] = times[i];
+      w.weatherHourCode[i] = codes[i];
+      w.weatherHourTemp[i] = temps[i];
+    }
+    renderer.draw(w);
+    save("weather");
+    w.weatherBusy = true;
+    w.weatherPhase = mm::WeatherPhaseView::Fetching;
+    w.weatherSource = "GPS";
+    renderer.draw(w);
+    save("weather-updating");
+    w.weatherBusy = false;
+    w.weatherPhase = mm::WeatherPhaseView::Error;
+    w.weatherMessage = "Weather retry / HTTP 503";
+    w.weatherCode = 95;
+    w.weatherText = "Thunderstorm";
+    w.temperature = -12;
+    w.apparent = -18;
+    w.weatherPlace = "A very long place name that must be clipped";
+    renderer.draw(w);
+    save("weather-storm");
+  }
+  state.page = mm::Page::Radio;
+  state.radioPreset = 8;
+  renderer.draw(state);
+  save("lora-eu-narrow");
+  state.radioBand = 900;
+  state.radioPreset = 0;
+  state.radioFrequency = 915.800f;
+  state.radioBW = 250;
+  state.radioSF = 10;
+  state.radioCR = 5;
+  state.radioDraftChanged = true;
+  renderer.draw(state);
+  save("lora-900-preview");
+  state.radioPreset = 8;
+  state.radioBand = 868;
+  state.radioFrequency = 869.618f;
+  state.radioBW = 62.5f;
+  state.radioSF = 8;
+  state.radioCR = 8;
+  state.radioDraftChanged = false;
+  state.radioPowerEditing = true;
+  state.radioPowerInput = "22";
+  renderer.draw(state);
+  save("radio-power");
+  for (int field = 0; field < 5; field++) {
+    state.radioEditField = field;
+    state.radioPowerInput = field == 0   ? "869.618"
+                            : field == 1 ? "62.5"
+                            : field == 2 ? "8"
+                            : field == 3 ? "8"
+                                         : "22";
+    renderer.draw(state);
+    save("lora-edit-" + std::to_string(field));
+  }
+  state.radioPowerEditing = false;
+  state.radioDevicePage = true;
+  state.radioName = "MatterMesh_Ridge";
+  state.radioPathBytes = 2;
+  renderer.draw(state);
+  save("lora-companion");
+  state.radioPowerEditing = true;
+  state.radioEditField = 5;
+  state.radioPowerInput = "MatterMesh_Ridge";
+  renderer.draw(state);
+  save("lora-companion-name");
+  state.radioDevicePage = false;
+  state.radioPowerEditing = false;
+  state.lockHasMessage = true;
+  state.lockRepeater = "Received via: Mongioie";
+  state.lockHint = false;
+  state.unlockTapCount = 0;
+  renderer.lock(state);
+  save("master-lock-received");
+  state.wallpaper = 1;
+  renderer.lock(state);
+  save("master-lock-route");
+  state.wallpaper = 2;
+  renderer.lock(state);
+  save("master-lock-pines");
+  state.wallpaper = 3;
+  renderer.lock(state);
+  save("master-lock-engraving");
+  state.wallpaper = 0;
+  state.lockHint = true;
+  state.unlockTapCount = 1;
+  renderer.lock(state);
+  save("master-lock-hint");
+  state.lockHasMessage = false;
+  state.lockHint = false;
+  state.unlockTapCount = 0;
+  state.lockRepeater = "";
+  renderer.lock(state);
+  save("master-lock-empty");
+  state.lockHasMessage = true;
+  state.quickReply = true;
+  state.quickReplyEditable = true;
+  state.quickSender = "River";
+  state.quickChannel = "Cervinia / it-vda";
+  state.quickPreview = "Can you bring the radio kit to the ridge?";
+  state.quickInput = "@[River] Copy. I will bring it in 10 minutes.";
+  renderer.lock(state);
+  save("quick-reply");
+  state.quickInput = std::string(96, 'W');
+  renderer.lock(state);
+  save("quick-reply-long");
+  state.quickReply = false;
+  state.page = mm::Page::Wifi;
+  state.wifiEditing = true;
+  state.wifiHidden = true;
+  state.wifiSSID = "Field hidden network";
+  state.wifiPasswordMask = "***********************";
+  state.wifiEditField = 1;
+  renderer.draw(state);
+  save("master-wifi-password-hidden");
+  state.wifiShowPassword = true;
+  state.wifiPasswordMask = "Example12345";
+  renderer.draw(state);
+  save("master-wifi-password-visible");
+  state.wifiEditing = false;
+  state.wifiShowPassword = false;
+  state.networks = {{"Field network", -48, true}, {"Open network", -75, false}};
+  renderer.draw(state);
+  save("master-wifi-networks");
+  state.page = mm::Page::Power;
+  renderer.draw(state);
+  save("power-timeout");
+  state.page = mm::Page::Wallpaper;
+  state.wallpaper = 0;
+  state.wallpaperFocus = 1;
+  renderer.draw(state);
+  save("wallpaper");
+  state.wallpaperFocus = 0;
+  // Keyboard languages: Italian + Russian on, typing Russian (focus on the Russian row); a search;
+  // a Cyrillic chat.
+  state.page = mm::Page::Keyboard;
+  state.kbdMask = (1u << 0) | (1u << 6);
+  state.kbdLang = 6;
+  state.kbdFocus = 6;
+  state.status.keyboard = "RU";
+  renderer.draw(state);
+  save("keyboard-languages");
+  state.kbdQuery = "ukr";
+  state.kbdSearching = true;
+  state.kbdFocus = 0;
+  renderer.draw(state);
+  save("keyboard-languages-search");
+  state.kbdQuery = "";
+  state.kbdSearching = false;
+  state.kbdMask = 1;
+  state.kbdLang = 0;
+  state.kbdFocus = 0;
+  state.status.keyboard = "";
+  state.page = mm::Page::AccentKey;
+  state.accentMode = 2;
+  state.accentFocus = 1;
+  renderer.draw(state);
+  save("accent-key");
+  state.accentMode = state.accentFocus = 0;
+  state.notice = "Saved";
+  renderer.draw(state);
+  save("accent-key-off");
+  state.notice = "";
+  state.accentMode = state.accentFocus = 2;
+  {
+    auto saved = state.messages;
+    state.page = mm::Page::Chat;
+    state.messages.clear();
+    state.chatName = "Москва";
+    state.status.keyboard = "RU";
+    state.messages.push_back(
+        {"Алексей", "09:41", "Привет! Как дела на перевале?", "1 hop | ru", false});
+    state.messages.push_back(
+        {"YOU", "09:42", "Всё хорошо, ветер слабый. Їжак і ґанок.", "Sent", true});
+    state.messages.push_back(
+        {"Олена", "09:44", "Добрий день! Ми біля хатини, є зв'язок.", "2 hop | ua", false});
+    renderer.draw(state);
+    save("chat-cyrillic");
+    state.messages = saved;
+    state.status.keyboard = "";
+  }
+  state.page = mm::Page::GPS;
+  state.locationValid = true;
+  state.latitude = 45.9;
+  state.longitude = 7.6;
+  state.gpsEnabled = false;
+  state.status.gps = false;
+  renderer.draw(state);
+  save("gps-off");
+  state.gpsEnabled = true;
+  state.status.gps = true;
+  renderer.draw(state);
+  save("gps-on");
+  state.page = mm::Page::Settings;
+  state.settingsOffset = mm::settingsMaxScroll();
+  renderer.draw(state);
+  save("settings-system");
+  state.page = mm::Page::Antenna;
+  renderer.draw(state);
+  save("antenna");
+  state.antennaConfirm = true;
+  renderer.draw(state);
+  save("antenna-confirm");
+  state.antennaConfirm = false;
+  state.page = mm::Page::Storage;
+  state.storageTotal = 32ULL * 1024 * 1024 * 1024;
+  state.storageUsed = 1024ULL * 1024 * 1024;
+  renderer.draw(state);
+  save("storage");
+  state = mm::State{};
+  state.chatName = "Italia";
+  state.scope = "it";
+  state.firstRepeater = "Received via: Mongioie";
+  state.status.clock = "10:24";
+  for (int i = 0; i < 10; i++)
+    state.messages.push_back({"River", "10:18", "Hello", "5 hop | it", false});
+  renderer.chat(state);
+  save("v9-chat-four");
+  renderer.notificationBanner(mm::NotificationBanner, mm::Top - 1, mm::Icon::Messages, "Scout",
+                              "Public", "New message on Public, bringing the radio kit");
+  save("v9-notification");
+  {
+    mm::State q;
+    q.page = mm::Page::QuickSettings;
+    q.status.clock = "10:24";
+    q.status.battery = 82;
+    q.status.unread = 3;
+    q.status.mesh = true;
+    q.displayLight = 80;
+    q.displayLightEnabled = true;
+    q.audioVolume = 50;
+    q.audioNotifications = true;
+    q.wifiEnabled = false;
+    q.bleEnabled = true;
+    q.gpsEnabled = true;
+    q.powerSourceKnown = true;
+    renderer.draw(q);
+    save("quick-settings");
+    q.audioNotifications = false;
+    q.shutdownConfirm = true;
+    renderer.draw(q);
+    save("quick-settings-poweroff");
+  }
+  state = mm::State{};
+  state.quickReply = true;
+  state.quickSent = true;
+  state.quickSender = "River";
+  state.quickChannel = "Italia";
+  state.quickPreview = "Can you hear me?";
+  renderer.lock(state);
+  save("v9-quick-sent");
+  // CLI (sample session).
+  {
+    mm::State t;
+    t.status.clock = "15:39";
+    t.status.battery = 61;
+    t.status.mesh = true;
+    mm::State c;
+    c.status = t.status;
+    c.page = mm::Page::Cli;
+    c.cliPrompt = "MatterMesh_Ridge> ";
+    c.cliLines = {"MatterMesh CLI",
+                  "Connected to MatterMesh_Ridge",
+                  "Type 'help' for available commands.",
+                  "",
+                  "MatterMesh_Ridge> ver",
+                  "MatterMesh OS ALPHA 0.4.2.2 / MeshCore v1.18.0",
+                  "MatterMesh_Ridge> get radio",
+                  "869.618,62.5,8,8"};
+    c.cliInput = "stats-radio";
+    c.cliCursor = 5;
+    renderer.draw(c);
+    save("cli");
+    c.cliCanPaste = true;
+    c.cliStreaming = true;
+    c.cliLines.push_back("MatterMesh_Ridge> log start");
+    c.cliLines.push_back("15:38:56 FLOOD TEXT_MSG 72B -9.5dB E8D1>...>8859");
+    renderer.draw(c);
+    save("cli-log");
+    t.page = mm::Page::Launcher;
+    t.focus = -1;
+    renderer.draw(t);
+    save("applications-tools");
+  }
+  std::cout << "Native C++ UI previews " << mm::W << "x" << mm::H << " written to " << dir << "\n";
+}

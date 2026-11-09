@@ -1,7 +1,7 @@
 # MatterMesh OS
 
-An alternative firmware for the LilyGO **T-Deck Plus** and **T-Deck Max**, built on [MeshCore](https://github.com/meshcore-dev/MeshCore):
-off-grid LoRa chat with a real keyboard, designed for use in the field.
+An alternative firmware for the LilyGO **T-Deck Plus**, **T-Deck Max**, Elecrow **ThinkNode M9** and RockBase **NM-EPD-420-BW**, built on [MeshCore](https://github.com/meshcore-dev/MeshCore):
+off-grid LoRa chat, designed for use in the field.
 
 **Website and browser installer: [mattermeshos.com](https://mattermeshos.com)** — install it on your T-Deck from Chrome or Edge, no tools needed.
 
@@ -9,6 +9,7 @@ off-grid LoRa chat with a real keyboard, designed for use in the field.
 <tr>
 <td align="center"><img src="docs/images/plus-lock.png" width="400" alt="T-Deck Plus lock screen"><br><b>T-Deck Plus</b> · lock screen</td>
 <td align="center"><img src="docs/images/max-lock.png" width="280" alt="T-Deck Max lock screen"><br><b>T-Deck Max</b> · lock screen</td>
+<td align="center"><img src="docs/images/nm-epd-420.png" width="280" alt="NM-EPD-420 lock screen"><br><b>NM-EPD-420</b> · lock screen</td>
 </tr>
 <tr>
 <td align="center"><img src="docs/images/plus-chat.png" width="400" alt="T-Deck Plus chat"><br>Chat in two languages (Plus)</td>
@@ -23,9 +24,12 @@ This repository holds the source of the **Free edition**, released under the GNU
 | [`tdeck-plus/`](tdeck-plus) | T-Deck Plus (ESP32-S3, SX1262 or SX1268; 433, 868 and 915 MHz) | 320×240 colour LCD, touch |
 | [`tdeck-max/`](tdeck-max) | T-Deck Max (ESP32-S3, SX1262) | 240×320 e-paper, touch |
 | [`thinknode-m9/`](thinknode-m9) | Elecrow ThinkNode M9 (ESP32-S3, LR1110) | 320×240 colour LCD, keyboard and D-pad, no touch: the whole UI is reachable with the arrows and OK |
+| [`nm-epd-420/`](nm-epd-420) | RockBase NM-EPD-420-BW (ESP32-S3, SX1262) | 400×300 monochrome e-paper, two buttons |
 
 The devices are separate code bases (different screens, input and power management); they share the
 MeshCore companion protocol, so they work with the MeshCore apps and with every other MeshCore node.
+The NM firmware is derived from the Max application, with its
+board drivers, two-button input and landscape layouts isolated in `nm-epd-420/`.
 
 ## What's in the Free edition
 
@@ -41,16 +45,19 @@ MeshCore companion protocol, so they work with the MeshCore apps and with every 
 Requirements: [PlatformIO Core](https://platformio.org/install/cli), git, a C++17 host compiler for the tests.
 
 ```sh
-scripts/fetch-deps.sh                 # MeshCore companion-v1.18.0 and the LilyGO T-Deck-MAX libraries, pinned and patched
-cd tdeck-plus && pio run -e tdeck-plus-free          # T-Deck Plus
-cd tdeck-max  && pio run -e mattermesh-free          # T-Deck Max
-cd thinknode-m9 && pio run -e thinknode-m9-free     # ThinkNode M9
+bash scripts/fetch-deps.sh             # MeshCore companion-v1.18.0 and the LilyGO T-Deck-MAX libraries, pinned and patched
+(cd tdeck-plus && pio run -e tdeck-plus-free)          # T-Deck Plus
+(cd tdeck-max && pio run -e mattermesh-free)          # T-Deck Max
+(cd thinknode-m9 && pio run -e thinknode-m9-free)     # ThinkNode M9
+(cd nm-epd-420 && pio run -e nm-epd-420-bw-free)       # RockBase NM-EPD-420-BW
 ```
 
-Flash the app image at `0x10000` (for example `esptool.py write-flash 0x10000 .pio/build/<env>/firmware.bin`).
-Host tests: `bash tools/test_release.sh` in either folder. The Plus folder also contains a PC emulator (`emu/`, see its README).
+See [NM-EPD-420-BW build, hardware and controls](nm-epd-420/README.md) for setup, flashing and power-management details.
 
-The emoji fonts live once in `shared/fonts/` and are symlinked into both trees; they are only needed to regenerate
+Flash the app image at `0x10000` (for example `esptool.py write-flash 0x10000 .pio/build/<env>/firmware.bin`).
+Host tests: `bash tools/test_release.sh` in either LilyGO folder. The Plus folder also contains a PC emulator (`emu/`, see its README).
+
+The emoji fonts live once in `shared/fonts/` and are symlinked into the device trees; they are only needed to regenerate
 the emoji bitmaps (`tools/make_color_emoji.py`, `tools/build_emoji_assets.py`), not to build. On Windows clone with
 `git clone -c core.symlinks=true` (or build on Linux/macOS).
 

@@ -1,0 +1,38 @@
+{
+  "Small": {
+    "ascent": 10,
+    "line": 14,
+    "pixel_size": 10,
+    "source": "LiberationSans-Bold.ttf"
+  },
+  "Body": {
+    "ascent": 10,
+    "line": 14,
+    "pixel_size": 11,
+    "source": "LiberationSans-Regular.ttf"
+  },
+  "Bold": {
+    "ascent": 10,
+    "line": 14,
+    "pixel_size": 11,
+    "source": "LiberationSans-Bold.ttf"
+  },
+  "Title": {
+    "ascent": 12,
+    "line": 16,
+    "pixel_size": 13,
+    "source": "LiberationSans-Bold.ttf"
+  },
+  "Brand": {
+    "ascent": 17,
+    "line": 22,
+    "pixel_size": 18,
+    "source": "LiberationSans-Bold.ttf"
+  },
+  "Clock": {
+    "ascent": 28,
+    "line": 36,
+    "pixel_size": 30,
+    "source": "LiberationSans-Bold.ttf"
+  }
+}

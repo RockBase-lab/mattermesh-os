@@ -1,13 +1,19 @@
 #!/usr/bin/env bash
-# Fetch the pinned third-party sources both firmware trees build against, apply the local patches and link them
-# into tdeck-plus/, tdeck-max/ and thinknode-m9/ (each tree expects ./hardware and ./meshcore-base next to platformio.ini).
+# Fetch the pinned third-party sources, apply the local patches and link them into all four
+# firmware trees (each expects ./hardware and ./meshcore-base next to platformio.ini).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 ROOT=$PWD
 mkdir -p deps
 fetch(){ # url commit dir
-  if [ ! -d "deps/$3/.git" ]; then git clone --quiet "$1" "deps/$3"; fi
-  git -C "deps/$3" fetch --quiet origin "$2" 2>/dev/null || true
+  if [ ! -d "deps/$3/.git" ]; then
+    git init --quiet "deps/$3"
+    git -C "deps/$3" remote add origin "$1"
+  fi
+  # Only the pinned commit is needed, including on the first checkout.
+  if ! git -C "deps/$3" cat-file -e "$2^{commit}" 2>/dev/null; then
+    git -C "deps/$3" fetch --quiet --depth 1 origin "$2"
+  fi
   git -C "deps/$3" checkout --quiet --force "$2"
   git -C "deps/$3" clean --quiet -fdx
 }
@@ -15,7 +21,7 @@ fetch https://github.com/meshcore-dev/MeshCore.git 81dbae592ffad40b4212bc0b37e82
 fetch https://github.com/Xinyuan-LilyGO/T-Deck-MAX.git 7b7f834746499676eb14dfc987c586b0df6aa361 t-deck-max
 git -C deps/meshcore apply "$ROOT/tdeck-max/tools/patches/meshcore-login-password.patch"
 git -C deps/t-deck-max apply "$ROOT/patches/lilygo-tdeck-max.patch"
-for tree in tdeck-plus tdeck-max thinknode-m9; do
+for tree in tdeck-plus tdeck-max thinknode-m9 nm-epd-420; do
   ln -sfn "$ROOT/deps/meshcore" "$tree/meshcore-base"
   ln -sfn "$ROOT/deps/t-deck-max" "$tree/hardware"
 done

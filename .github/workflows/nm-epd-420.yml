@@ -1,0 +1,40 @@
+name: NM-EPD-420-BW
+
+on:
+  push:
+    paths:
+      - 'nm-epd-420/**'
+      - 'scripts/fetch-deps.sh'
+      - 'patches/**'
+      - 'tdeck-max/tools/patches/**'
+      - '.github/workflows/nm-epd-420.yml'
+  pull_request:
+    paths:
+      - 'nm-epd-420/**'
+      - 'scripts/fetch-deps.sh'
+      - 'patches/**'
+      - 'tdeck-max/tools/patches/**'
+      - '.github/workflows/nm-epd-420.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install PlatformIO
+        run: python -m pip install platformio==6.2.0
+      - name: Fetch pinned dependencies
+        run: bash scripts/fetch-deps.sh
+      - name: Build NM-EPD-420-BW firmware
+        run: pio run -d nm-epd-420 -e nm-epd-420-bw-free
+      - name: Run host regression tests
+        working-directory: nm-epd-420
+        run: bash tools/test_release.sh
